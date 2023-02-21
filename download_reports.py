@@ -1,8 +1,9 @@
 import requests
 import os
 
-# Set the artist ID for the report URL
-artist_id = 657
+start_report_id = 46  # starting report id
+end_report_id = 52  # ending report id
+artist_id = 657  # artist id
 
 # Set the authentication cookie
 cookie = {
@@ -11,7 +12,7 @@ cookie = {
 
 # Loop through the report URLs, from 1 to 4000
 
-for report_id in range(46, 52):
+for report_id in range(start_report_id, end_report_id):
     # Construct the report URL
     report_url = f'https://dash.materiamusic.com/api/1/artist/aggregate_report_csv/?artist_id={artist_id}&report_id={report_id}'
 
