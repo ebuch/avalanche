@@ -2,7 +2,10 @@ import os
 import sys
 import pandas as pd
 import argparse
+from colorama import init
 from termcolor import colored
+
+init()
 
 # create argument parser
 parser = argparse.ArgumentParser(description='Aggregate reports for a given artist and date downloaded')

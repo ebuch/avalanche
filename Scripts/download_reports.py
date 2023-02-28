@@ -6,6 +6,7 @@ import time
 import logging
 import datetime
 import requests
+from colorama import init
 from termcolor import colored
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
@@ -15,6 +16,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+init()
 
 # Start a browser session
 driver = webdriver.Chrome()
@@ -160,7 +163,6 @@ else:
             total_stats_total_amount += float(stats_total_amount)
             print(colored(f"Found stats_total_amount {stats_total_amount} for report {report_id}", "green"))
         except:
-            stats_total_amount = ""
             print(colored(f"Unable to get stats_total_amount for report {report_id}", "red"))
 
         # add row to reports summary file
@@ -172,5 +174,5 @@ else:
         num_reports += 1   
         continue
 
-    formatted_total_amount = f'${float(stats_total_amount):,.2f}'
+    formatted_total_amount = f'${float(total_stats_total_amount):,.2f}'
     print(colored(f"Downloading complete. {num_reports} reports found. Total amount: {formatted_total_amount}", "cyan"))

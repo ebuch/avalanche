@@ -44,6 +44,8 @@ avalanche is a set of Python scripts for Materia artists that enables them to co
 
 - This script will prompt you to choose which folder of reports you would like to aggregate. It will then combine all of the individual reports into a simple aggregate report, which sums the totals for each unique product found in your report. The script will also generate a detailed aggregate report which simply combines all of your reports into a single CSV file. 
 
+- This script might give you an arguments error at first, but it should still work if you let it finish.
+
 - It is worth noting that the "Units" column of the aggregated report is combining sales and streams of single tracks. I will try to differentiate the two in the future, but for now it's still useful as a popularity metric.
 
 > Warning! The detailed aggregate report file will be very large! Please open with caution.

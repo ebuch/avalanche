@@ -1,6 +1,9 @@
 import os
 import subprocess
+from colorama import init
 from termcolor import colored
+
+init()
 
 # Prompt user for action
 print(colored("What would you like to do?", "cyan"))
