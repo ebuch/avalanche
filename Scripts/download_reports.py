@@ -3,10 +3,11 @@ import re
 import csv
 import sys
 import time
+import logging
 import datetime
-from urllib.parse import urlparse, parse_qs
-
 import requests
+from termcolor import colored
+from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -15,141 +16,161 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# Prompt the user for their authentication credentials and artist ID
-login_email = input("Enter your Materia Dashboard login email: ")
-login_password = input("Enter your Materia Dashboard login password: ")
-artist_id = input("Enter your Materia Dashboard artist ID: ")
-
-# Set the download date
-date_downloaded = datetime.datetime.now().strftime("%Y-%m-%d")
-
 # Start a browser session
 driver = webdriver.Chrome()
+driver.get("https://auth.dash.materiamusic.com/u/login/")
 
-# Navigate to the login page
-driver.get(f"https://dash.materiamusic.com/artist/{artist_id}/reports")
+print(colored("Log into the Materia Dashboard to continue.", "cyan"))
 
-wait = WebDriverWait(driver, 5)
+wait = WebDriverWait(driver, 60)
+wait.until(EC.text_to_be_present_in_element((By.TAG_NAME, 'body'), 'Welcome home'))
 
-# Find the username and password fields and enter your login information
-username_field = driver.find_element(By.ID, "username")
-username_field.send_keys(login_email)
-username_field.send_keys(Keys.RETURN)
-
-password_field = driver.find_element(By.ID, "password")
-password_field.send_keys(login_password)
-password_field.send_keys(Keys.RETURN)
-
-# Wait for the page to load
-time.sleep(5)
-
-# Check if the login attempt was unsuccessful
-if "login" in driver.current_url:
-    print("Login attempt unsuccessful. Please check your login credentials and try again.")
-    driver.quit()
-    sys.exit()
-
-# extract the cookies as a dictionary
-cookies = driver.get_cookies()
-auth_cookie = next(cookie for cookie in cookies if cookie['name'] == 'materiacollective')['value']
-
-# set the cookie as a dictionary
-cookie = {
-    'materiacollective': auth_cookie
-}
-
-# get page source using Selenium
 page_source = driver.page_source
 
-# create BeautifulSoup object
-soup = BeautifulSoup(page_source, 'html.parser')
+# Check if the user is logged in
+logged_in = "Welcome home" in driver.page_source
 
-# get artist name from dashboard
-artist_name = soup.find('div', {'class': 'entity-name'}).text
+if not logged_in:
+    print(colored("Login failed.", "red"))
+else:
+    print(colored("Login successful!", "green"))
 
-# define paths to directories
-base_path = f"Reports/{artist_name}"
-date_path = os.path.join(base_path, date_downloaded)
-individual_reports_path = os.path.join(date_path, "Individual Reports")
+    # create BeautifulSoup object
+    soup = BeautifulSoup(page_source, 'html.parser')
 
-# create directories if they don't exist
-os.makedirs(individual_reports_path, exist_ok=True)
+    artists = soup.select('div.card.team__item a[href*="/artist/"][data-bind*="url_admin()"] + div h4.card-title a[href*="/artist/"][data-bind*="name()"]')
 
-# find table and count rows
-table = soup.find("table", {"class": "table mb-3"})
-rows = table.find_all("tr")
-print(f"Number of rows in table: {len(rows) - 1}")
+    # Check if there are multiple artists
+    if len(artists) > 1:
+        print("Multiple artists found. Please select one:")
+        for i, artist in enumerate(artists):
+            print(f"{i+1}. {artist.get_text()}")
+                    
+        selected_artist_index = int(input("Enter the artist number: ")) - 1
+        selected_artist = artists[selected_artist_index]
+    else:
+        selected_artist = artists[0]
 
-# define path to reports summary file
-reports_summary_file = os.path.join(date_path, f"{date_downloaded}_reports_summary.csv")
+    # Extract text and artist ID
+    artist_name = selected_artist.get_text()
+    artist_id = selected_artist["href"].split("/")[-1]
+    print(colored(f"Downloading reports for {artist_name}. This might take several minutes... go make some tea!", "yellow"))
 
-# check if reports summary file exists and create it with header row if it doesn't
-if not os.path.isfile(reports_summary_file):
-    with open(reports_summary_file, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Date Provided", "Partner Name", "Report ID", "Tracking URL", "Amount from Reports Page", "Amount from Details View", "Report Found"])
+    # navigate to the reports page
+    artist_url = f"https://dash.materiamusic.com/artist/{artist_id}/reports"
+    driver.get(artist_url)
 
-# loop through rows in table
-for row in table.find_all('tr')[1:]:
+    # wait 10 seconds for the table to load
+    print(colored("Allowing 10 seconds for the reports table to load completely.", "magenta"))
+    time.sleep(10)
 
-    # extract data from columns
-    date_provided = row.find('span', {'data-bind': 'text: date_provided_pretty'}).text
+    # update beautifulsoup source
+    reports_page_source = driver.page_source
+    soup = BeautifulSoup(reports_page_source, 'html.parser')
 
-    # Convert date_provided to datetime object
-    try:
-        dt = datetime.datetime.strptime(date_provided, '%b %d, %Y')
-    except ValueError:
-        dt = datetime.datetime.strptime(date_provided + ' ' + str(datetime.datetime.now().year), '%b %d %Y')
+    # find table and count rows
+    table = soup.find("table", {"class": "table mb-3"})
+    rows = table.find_all("tr")
+    print(colored(f"Number of reports found: {len(rows) - 1}", "yellow"))
 
-    # Format the datetime object into the desired string format
-    formatted_date_provided = dt.strftime('%Y-%m-%d')
+    # Set the download date
+    date_downloaded = datetime.datetime.now().strftime("%Y-%m-%d")
 
-    partner_name = row.find('h6', {'data-bind': 'text: partner_name'}).text
-    partner_name = re.sub(r'[^a-zA-Z0-9\s]', '', partner_name)
-    partner_name = partner_name.replace(" ", "")
+    # define paths to directories
+    base_path = f"Reports/{artist_name}"
+    date_path = os.path.join(base_path, date_downloaded)
+    individual_reports_path = os.path.join(date_path, "Individual Reports")
 
-    amount = row.find('span', {'data-bind': 'accounting_display_number: amount_fixed'}).text
+    # create directories if they don't exist
+    os.makedirs(individual_reports_path, exist_ok=True)
 
-    csv_download_url = row.find('a', {'data-bind': 'attr: {href: csv_download_url()}'}).get('href')
+    # define path to reports summary file
+    reports_summary_file = os.path.join(date_path, f"{date_downloaded}_reports_summary.csv")
 
-    parsed_url = urlparse(csv_download_url)
-    query_params = parse_qs(parsed_url.query)
-    report_id = query_params.get('report_id', [None])[0]
+    # check if reports summary file exists and create it with header row if it doesn't
+    if not os.path.isfile(reports_summary_file):
+        with open(reports_summary_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Date Provided", "Partner Name", "Report ID", "Tracking URL", "Amount from Reports Page", "Amount from Details View", "Report Found"])
 
-    report_found = True
-    
-    # download CSV file
-    response = requests.get(csv_download_url, cookies=cookie)
+    # extract the cookies as a dictionary
+    cookies = driver.get_cookies()
+    auth_cookie = next(cookie for cookie in cookies if cookie['name'] == 'materiacollective')['value']
 
-    # Check if the response contains the "Could not locate resource" message
-    if '{"message":"Could not locate resource.","resource":null}' in response.text:
-        print(f'Report {report_id} not found.')
-        report_found = False
+    # set the cookie as a dictionary
+    cookie = {
+        'materiacollective': auth_cookie
+    }
 
-    if report_found:
-        filename = f"{partner_name}_{formatted_date_provided}_report{report_id}.csv"
-        with open(f"{individual_reports_path}/{filename}", 'wb') as f:
-            print(f'Report {report_id} downloaded')
-            f.write(response.content)
+    # loop through rows in table
+    num_reports = 0
+    total_stats_total_amount = 0
+    for row in table.find_all('tr')[1:]:
 
-    # Navigate to tracking URL and get stats_total_amount if report is missing
-    tracking_url = row.find('a', {'data-bind': 'attr: {href: tracking_url()}'}).get('href')
-    driver.get(tracking_url)
-    # Wait up to 10 seconds for the stats_total_amount element to be present on the page
-    wait = WebDriverWait(driver, 10)
-    stats_total_amount = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'stats_total_amount')))
+        # extract data from columns
+        date_provided = row.find('span', {'data-bind': 'text: date_provided_pretty'}).text
 
-    try:
-        stats_total_amount = driver.find_element(By.CLASS_NAME, 'stats_total_amount').text.replace(',', '')
-        print(f"Found stats_total_amount {stats_total_amount} for report {report_id}")
-    except:
-        stats_total_amount = ""
-        print(f"Unable to get stats_total_amount for report {report_id}")
+        # Convert date_provided to datetime object
+        try:
+            dt = datetime.datetime.strptime(date_provided, '%b %d, %Y')
+        except ValueError:
+            dt = datetime.datetime.strptime(date_provided + ' ' + str(datetime.datetime.now().year), '%b %d %Y')
 
-    # add row to reports summary file
-    reports_summary_row = [formatted_date_provided, partner_name, report_id, tracking_url, amount, stats_total_amount, report_found]
-    with open(reports_summary_file, 'a', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(reports_summary_row)
+        # Format the datetime object into the desired string format
+        formatted_date_provided = dt.strftime('%Y-%m-%d')
 
-    continue
+        partner_name = row.find('h6', {'data-bind': 'text: partner_name'}).text
+        partner_name = re.sub(r'[^a-zA-Z0-9\s]', '', partner_name)
+        partner_name = partner_name.replace(" ", "")
+
+        amount = row.find('span', {'data-bind': 'accounting_display_number: amount_fixed'}).text
+
+        csv_download_url = row.find('a', {'data-bind': 'attr: {href: csv_download_url()}'}).get('href')
+
+        parsed_url = urlparse(csv_download_url)
+        query_params = parse_qs(parsed_url.query)
+        report_id = query_params.get('report_id', [None])[0]
+
+        report_found = True
+        
+        # download CSV file
+        response = requests.get(csv_download_url, cookies=cookie)
+
+        # Check if the response contains the "Could not locate resource" message
+        if '{"message":"Could not locate resource.","resource":null}' in response.text:
+            print(f'Report {report_id} not found.')
+            report_found = False
+
+        if report_found:
+            partner_name = partner_name.replace(' ', '')
+            filename = f"{partner_name}_{formatted_date_provided}_Report{report_id}.csv"
+            with open(f"{individual_reports_path}/{filename}", 'wb') as f:
+                print(colored(f'Report {report_id} downloaded', "green"))
+                f.write(response.content)
+
+        # Navigate to tracking URL and get stats_total_amount if report is missing
+        tracking_url = row.find('a', {'data-bind': 'attr: {href: tracking_url()}'}).get('href')
+        driver.get(tracking_url)
+        # Wait up to 10 seconds for the stats_total_amount element to be present on the page
+        wait = WebDriverWait(driver, 10)
+        stats_total_amount = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'stats_total_amount')))
+
+        try:
+            stats_total_amount = driver.find_element(By.CLASS_NAME, 'stats_total_amount').text.replace(',', '')
+            total_stats_total_amount += float(stats_total_amount)
+            print(colored(f"Found stats_total_amount {stats_total_amount} for report {report_id}", "green"))
+        except:
+            stats_total_amount = ""
+            print(colored(f"Unable to get stats_total_amount for report {report_id}", "red"))
+
+        # add row to reports summary file
+        reports_summary_row = [formatted_date_provided, partner_name, report_id, tracking_url, amount, stats_total_amount, report_found]
+        with open(reports_summary_file, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(reports_summary_row)
+
+        num_reports += 1   
+        continue
+
+    formatted_total_amount = f'${float(stats_total_amount):,.2f}'
+    print(colored(f"Downloading complete. {num_reports} reports found. Total amount: {formatted_total_amount}", "cyan"))

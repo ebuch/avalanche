@@ -28,9 +28,15 @@ avalanche is a set of Python scripts for Materia artists that enables them to co
 
 ### Download Reports
 
-- You will be prompted to provide your Materia Dashboard login username and password, as well as the artist ID associated with an artist managed under your account. To find your artist ID, log into the Materia Dashboard and click on the artist you wish to generate reports for. The number at the end of the URL is the artist ID. Your login credentials are not stored by the script.
+- After selecting "Download all reports," a login page for the Materia Dashboard will appear. 
 
-- Upon running the download reports script, a browser window will automatically pop open and log you into the dashboard. It will then automatically go through and download all of your reports and scrape data from the website to build a Report Summary file. This may take several minutes so go make yourself a cup of tea.
+- Enter your login credentials and click the submit button. 
+
+- If you have multiple artists under your account, you will be asked to select an artist. 
+
+- The script will proceed to automatically download all available reports.
+
+- A reports summary will be available once all reports have finished downloading.
 
 ### Aggregate Reports
 
@@ -46,4 +52,6 @@ Missing reports are reports that appear in the list of reports on an artist's da
 
 ```{"message":"Could not locate resource.","resource":null}```
 
-If the script encounters any missing reports, it will make note of the missing report in the Report Summary. If the Report Summary says you have missing reports, please manually verify this before contacting Materia Support to resolve the issue.
+If the script encounters any missing reports, it will make note of the missing report in the report summary. If the report summary says you have missing reports, please manually verify this before contacting Materia Support to resolve the issue.
+
+Missing reports still have an "amount" displayed on the reports page which you can see in the report summary. 

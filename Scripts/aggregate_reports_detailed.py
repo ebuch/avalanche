@@ -2,6 +2,7 @@ import os
 import sys
 import pandas as pd
 import argparse
+from termcolor import colored
 
 # create argument parser
 parser = argparse.ArgumentParser(description='Aggregate reports for a given artist and date downloaded')
@@ -39,4 +40,4 @@ for filename in os.listdir(individual_reports_path):
 # save the aggregated data frame to a CSV file
 aggregate_df.to_csv(aggregate_report_path, index=False)
 
-print(f"Detailed aggregated report for {date_folder} has been created at {aggregate_report_path}.")
+print(colored(f"Detailed aggregated report for {date_folder} has been created at {aggregate_report_path}.", "green"))
