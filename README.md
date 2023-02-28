@@ -18,6 +18,8 @@ avalanche is a set of Python scripts for Materia artists that enables them to co
 
 ```pip install -r requirements.txt```
 
+6. If this returns an error, you may need to restart your computer before trying again. Installation may take a few minutes.
+
 ## Usage
 
 1. After packages have installed, type ```python avalanche.py``` and press Enter to run the script.
