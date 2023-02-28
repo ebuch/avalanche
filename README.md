@@ -30,7 +30,7 @@ avalanche is a set of Python scripts for Materia artists that enables them to co
 
 - You will be prompted to provide your Materia Dashboard login username and password, as well as the artist ID associated with an artist managed under your account. To find your artist ID, log into the Materia Dashboard and click on the artist you wish to generate reports for. The number at the end of the URL is the artist ID. Your login credentials are not stored by the script.
 
-- Upon running the download reports script, a browser window will automatically pop open and log you into the dashboard. It will then automatically go through and download all of your reports and scrape data from the website to build a Reports Summary file. This may take several minutes so go make yourself a cup of tea.
+- Upon running the download reports script, a browser window will automatically pop open and log you into the dashboard. It will then automatically go through and download all of your reports and scrape data from the website to build a Report Summary file. This may take several minutes so go make yourself a cup of tea.
 
 ### Aggregate Reports
 
@@ -38,7 +38,7 @@ avalanche is a set of Python scripts for Materia artists that enables them to co
 
 - It is worth noting that the "Units" column of the aggregated report is combining sales and streams of single tracks. I will try to differentiate the two in the future, but for now it's still useful as a popularity metric.
 
-> Warning! The detailed aggregate reports file will be very large! Please open with caution.
+> Warning! The detailed aggregate report file will be very large! Please open with caution.
 
 ## Missing Reports
 
@@ -46,4 +46,4 @@ Missing reports are reports that appear in the list of reports on an artist's da
 
 ```{"message":"Could not locate resource.","resource":null}```
 
-If the script encounters any missing reports, it will make note of the missing report in the Reports Summary. If this report summary says you have missing reports, please manually verify this before contacting Materia Support to resolve the issue.
+If the script encounters any missing reports, it will make note of the missing report in the Report Summary. If the Report Summary says you have missing reports, please manually verify this before contacting Materia Support to resolve the issue.
