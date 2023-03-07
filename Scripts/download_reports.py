@@ -1,3 +1,6 @@
+# This file is licensed under the MIT License.
+# See LICENSE for more information.
+
 import os
 import re
 import csv
