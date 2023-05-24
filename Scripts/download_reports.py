@@ -108,6 +108,11 @@ else:
         'materiacollective': auth_cookie
     }
 
+    # initialize total variables
+    total_amount_from_reports_page = 0
+    total_amount_from_details_view = 0
+    successful_downloads = 0
+
     # loop through rows in table
     num_reports = 0
     total_stats_total_amount = 0
@@ -144,29 +149,26 @@ else:
 
         # Check if the response contains the "Could not locate resource" message
         if '{"message":"Could not locate resource.","resource":null}' in response.text:
-            print(f'Report {report_id} not found.')
+            print(colored(f'({num_reports + 1}/{len(rows) - 1}) Report {report_id} not found.', "red"))
             report_found = False
 
         if report_found:
             partner_name = partner_name.replace(' ', '')
             filename = f"{partner_name}_{formatted_date_provided}_Report{report_id}.csv"
             with open(f"{individual_reports_path}/{filename}", 'wb') as f:
-                print(colored(f'Report {report_id} downloaded', "green"))
+                print(colored(f'({num_reports + 1}/{len(rows) - 1}) Report {report_id} successfully downloaded.', "green"))
                 f.write(response.content)
 
         # Navigate to tracking URL and get stats_total_amount if report is missing
         tracking_url = row.find('a', {'data-bind': 'attr: {href: tracking_url()}'}).get('href')
         driver.get(tracking_url)
+
         # Wait up to 10 seconds for the stats_total_amount element to be present on the page
         wait = WebDriverWait(driver, 10)
         stats_total_amount = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'stats_total_amount')))
 
-        try:
-            stats_total_amount = driver.find_element(By.CLASS_NAME, 'stats_total_amount').text.replace(',', '')
-            total_stats_total_amount += float(stats_total_amount)
-            print(colored(f"Found stats_total_amount {stats_total_amount} for report {report_id}", "green"))
-        except:
-            print(colored(f"Unable to get stats_total_amount for report {report_id}", "red"))
+        stats_total_amount = driver.find_element(By.CLASS_NAME, 'stats_total_amount').text.replace(',', '')
+        total_stats_total_amount += float(stats_total_amount)
 
         # add row to reports summary file
         reports_summary_row = [formatted_date_provided, partner_name, report_id, tracking_url, amount, stats_total_amount, report_found]
@@ -174,8 +176,20 @@ else:
             writer = csv.writer(f)
             writer.writerow(reports_summary_row)
 
+            # add to totals
+            total_amount_from_reports_page += float(amount[1:].replace(',', ''))
+            total_amount_from_details_view += float(stats_total_amount)
+            if report_found:
+                successful_downloads += 1
+
         num_reports += 1   
         continue
+    
+    # Append totals row to reports summary file
+    with open(reports_summary_file, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['', 'Totals', '', '', total_amount_from_reports_page, total_amount_from_details_view, f'{successful_downloads} / {len(rows) - 1}'])
+
 
     formatted_total_amount = f'${float(total_stats_total_amount):,.2f}'
-    print(colored(f"Downloading complete. {num_reports} reports found. Total amount: {formatted_total_amount}", "cyan"))
+    print(colored(f"Downloading complete! A download summary has been generated. To generate aggregated reports, re-run avalanche.py.", "cyan"))

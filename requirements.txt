@@ -2,6 +2,6 @@ beautifulsoup4==4.9.3
 pandas==1.5.3
 selenium==4.8.2
 urllib3==1.26.7
-requests==2.26.0
+requests==2.31.0
 termcolor==1.1.0
 colorama==0.4.4
