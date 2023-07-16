@@ -110,7 +110,6 @@ else:
 
     # initialize total variables
     total_amount_from_reports_page = 0
-    total_amount_from_details_view = 0
     successful_downloads = 0
 
     # loop through rows in table
@@ -159,26 +158,14 @@ else:
                 print(colored(f'({num_reports + 1}/{len(rows) - 1}) Report {report_id} successfully downloaded.', "green"))
                 f.write(response.content)
 
-        # Navigate to tracking URL and get stats_total_amount if report is missing
-        tracking_url = row.find('a', {'data-bind': 'attr: {href: tracking_url()}'}).get('href')
-        driver.get(tracking_url)
-
-        # Wait up to 10 seconds for the stats_total_amount element to be present on the page
-        wait = WebDriverWait(driver, 10)
-        stats_total_amount = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'stats_total_amount')))
-
-        stats_total_amount = driver.find_element(By.CLASS_NAME, 'stats_total_amount').text.replace(',', '')
-        total_stats_total_amount += float(stats_total_amount)
-
         # add row to reports summary file
-        reports_summary_row = [formatted_date_provided, partner_name, report_id, tracking_url, amount, stats_total_amount, report_found]
+        reports_summary_row = [formatted_date_provided, partner_name, report_id, amount, report_found]
         with open(reports_summary_file, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(reports_summary_row)
 
             # add to totals
             total_amount_from_reports_page += float(amount[1:].replace(',', ''))
-            total_amount_from_details_view += float(stats_total_amount)
             if report_found:
                 successful_downloads += 1
 
@@ -188,8 +175,7 @@ else:
     # Append totals row to reports summary file
     with open(reports_summary_file, 'a', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['', 'Totals', '', '', total_amount_from_reports_page, total_amount_from_details_view, f'{successful_downloads} / {len(rows) - 1}'])
-
+        writer.writerow(['', 'Totals', '', '', total_amount_from_reports_page, f'{successful_downloads} / {len(rows) - 1}'])
 
     formatted_total_amount = f'${float(total_stats_total_amount):,.2f}'
     print(colored(f"Downloading complete! A download summary has been generated. To generate aggregated reports, re-run avalanche.py.", "cyan"))
